@@ -6,6 +6,7 @@ import { StatusIcon } from "../StatusIcon";
 type Props = TouchableOpacityProps & {
   status: FilterStatus;
   isActive: boolean;
+  key: string;
 };
 
 export function Filter({ status, isActive, ...rest }: Props) {
