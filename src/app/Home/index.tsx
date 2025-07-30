@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Image,
@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Filter } from "@/components/Filter";
 import { Item } from "@/components/Item";
+import { itemsStorage, ItemStorage } from "@/storage/itemsStorage";
 
 import { FilterStatus } from "@/types/FilterStatus";
 
@@ -21,9 +22,9 @@ const FILTER_STATUS: FilterStatus[] = [FilterStatus.DONE, FilterStatus.PENDING];
 export function Home() {
   const [filter, setFilter] = useState(FilterStatus.PENDING);
   const [description, setDescription] = useState("");
-  const [items, setItems] = useState<any>([]);
+  const [items, setItems] = useState<ItemStorage[]>([]);
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!description.trim()) {
       return Alert.alert("Adicionar", "Informe uma descrição para adicionar");
     }
@@ -33,7 +34,63 @@ export function Home() {
       description,
       status: FilterStatus.PENDING,
     };
+
+    await itemsStorage.add(newItem);
+    await itemsByStatus();
+
+    setFilter(FilterStatus.PENDING);
+    Alert.alert("Adicionado", `Adicionado ${description}`);
+    setDescription("");
   }
+
+  async function itemsByStatus() {
+    try {
+      const response = await itemsStorage.getByStatus(filter);
+
+      setItems(response);
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possivel consultar items");
+    }
+  }
+
+  async function handleRemove(id: string) {
+    try {
+      await itemsStorage.remove(id);
+      await itemsByStatus();
+    } catch (error) {
+      Alert.alert("Remover", "Não foi possivel remover");
+    }
+  }
+
+  function handleClear() {
+    Alert.alert("Limpar", "Deseja remover todos?", [
+      { text: "Não", style: "cancel" },
+      { text: "Sim", onPress: () => onClear() },
+    ]);
+  }
+
+  async function onClear() {
+    try {
+      await itemsStorage.clear;
+      setItems([]);
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Erro", "Não foi possível limpar");
+    }
+  }
+
+  async function handleToggleStatus(id: string) {
+    try {
+      await itemsStorage.toggleStatus(id);
+      await itemsByStatus();
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Erro", "Não foi possivel atualizar o status");
+    }
+  }
+  useEffect(() => {
+    itemsByStatus();
+  }, [filter]);
 
   return (
     <View style={styles.container}>
@@ -42,6 +99,7 @@ export function Home() {
         <Input
           placeholder="O que você precisa comprar?"
           onChangeText={setDescription}
+          value={description}
         />
         <Button title="Adicionar" onPress={handleAdd} />
       </View>
@@ -55,7 +113,11 @@ export function Home() {
               onPress={() => setFilter(status)}
             />
           ))}
-          <TouchableOpacity style={styles.clearButton} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.clearButton}
+            activeOpacity={0.8}
+            onPress={handleClear}
+          >
             <Text style={styles.clearText}>Limpar</Text>
           </TouchableOpacity>
         </View>
@@ -66,8 +128,8 @@ export function Home() {
           renderItem={({ item }) => (
             <Item
               data={item}
-              onRemove={() => console.log("Remover")}
-              onStatus={() => console.log("Muda o Status")}
+              onRemove={() => handleRemove(item.id)}
+              onStatus={() => handleToggleStatus(item.id)}
             />
           )}
           showsVerticalScrollIndicator={false}

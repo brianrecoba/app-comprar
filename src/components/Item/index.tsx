@@ -18,7 +18,7 @@ type Props = {
 export function Item({ data, onRemove, onStatus }: Props) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity opacity={0.8} onPress={onStatus}>
+      <TouchableOpacity activeOpacity={0.8} onPress={onStatus}>
         <StatusIcon status={data.status} />
       </TouchableOpacity>
       <Text style={styles.description}>{data.description}</Text>
